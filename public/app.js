@@ -34,30 +34,73 @@ function isPreviewable(name) {
 }
 
 /* ── DOM refs ───────────────────────────────────────── */
-const dropZone      = $('dropZone');
-const fileInput     = $('fileInput');
-const selectedFiles = $('selectedFiles');
-const uploadBtn     = $('uploadBtn');
-const uploadProgress = $('uploadProgress');
-const progressFill  = $('progressFill');
-const uploadStatus  = $('uploadStatus');
-const docsList      = $('docsList');
-const refreshBtn    = $('refreshBtn');
-const searchInput   = $('searchInput');
-const previewModal  = $('previewModal');
-const modalBackdrop = $('modalBackdrop');
-const modalClose    = $('modalClose');
-const modalTitle    = $('modalTitle');
-const modalBody     = $('modalBody');
+const dropZone        = $('dropZone');
+const fileInput       = $('fileInput');
+const selectedFiles   = $('selectedFiles');
+const uploadBtn       = $('uploadBtn');
+const cancelUploadBtn = $('cancelUploadBtn');
+const uploadPanel     = $('uploadPanel');
+const uploadTrigger   = $('uploadTrigger');
+const uploadProgress  = $('uploadProgress');
+const progressFill    = $('progressFill');
+const uploadStatus    = $('uploadStatus');
+const docsList        = $('docsList');
+const refreshBtn      = $('refreshBtn');
+const searchInput     = $('searchInput');
+const previewModal    = $('previewModal');
+const modalBackdrop   = $('modalBackdrop');
+const modalClose      = $('modalClose');
+const modalTitle      = $('modalTitle');
+const modalBody       = $('modalBody');
+const listViewBtn     = $('listViewBtn');
+const gridViewBtn     = $('gridViewBtn');
+const navToggle       = $('navToggle');
+const sideNav         = $('sideNav');
+const dropOverlay     = $('dropOverlay');
+const storageFill     = $('storageFill');
+const storageLabel    = $('storageLabel');
 
 let allDocs = [];
+let currentView = 'list'; // 'list' | 'grid'
+let dragCounter = 0;
+
+/* ── Sidebar toggle (mobile) ────────────────────────── */
+navToggle.addEventListener('click', () => {
+  const open = sideNav.classList.toggle('open');
+  navToggle.setAttribute('aria-expanded', String(open));
+});
+
+/* ── View toggle ────────────────────────────────────── */
+listViewBtn.addEventListener('click', () => setView('list'));
+gridViewBtn.addEventListener('click', () => setView('grid'));
+
+function setView(view) {
+  currentView = view;
+  listViewBtn.setAttribute('aria-pressed', String(view === 'list'));
+  gridViewBtn.setAttribute('aria-pressed', String(view === 'grid'));
+  renderDocuments(filterDocs());
+}
+
+/* ── Upload panel ───────────────────────────────────── */
+uploadTrigger.addEventListener('click', () => {
+  uploadPanel.hidden = false;
+  fileInput.click();
+  uploadPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+cancelUploadBtn.addEventListener('click', () => {
+  uploadPanel.hidden = true;
+  fileInput.value = '';
+  selectedFiles.innerHTML = '';
+  uploadBtn.disabled = true;
+  setStatus('', '');
+});
 
 /* ── Drop zone interactions ─────────────────────────── */
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' || e.key === ' ') fileInput.click();
 });
-
 dropZone.addEventListener('dragover', (e) => {
   e.preventDefault();
   dropZone.classList.add('dragover');
@@ -73,6 +116,7 @@ dropZone.addEventListener('drop', (e) => {
 fileInput.addEventListener('change', handleFileSelection);
 
 function handleFileSelection() {
+  uploadPanel.hidden = false;
   const files = Array.from(fileInput.files);
   selectedFiles.innerHTML = files
     .map((f) => `<span class="file-chip">${fileIcon(f.name)} ${escapeHtml(f.name)} (${formatSize(f.size)})</span>`)
@@ -80,6 +124,30 @@ function handleFileSelection() {
   uploadBtn.disabled = files.length === 0;
   setStatus('', '');
 }
+
+/* ── Full-page drag-and-drop overlay ────────────────── */
+document.addEventListener('dragenter', (e) => {
+  if (e.dataTransfer && e.dataTransfer.types.includes('Files')) {
+    dragCounter++;
+    dropOverlay.hidden = false;
+  }
+});
+document.addEventListener('dragleave', () => {
+  dragCounter--;
+  if (dragCounter <= 0) { dragCounter = 0; dropOverlay.hidden = true; }
+});
+document.addEventListener('dragover', (e) => e.preventDefault());
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dragCounter = 0;
+  dropOverlay.hidden = true;
+  if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+    uploadPanel.hidden = false;
+    fileInput.files = e.dataTransfer.files;
+    handleFileSelection();
+    uploadPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+});
 
 /* ── Upload ─────────────────────────────────────────── */
 uploadBtn.addEventListener('click', () => {
@@ -112,6 +180,7 @@ uploadBtn.addEventListener('click', () => {
       selectedFiles.innerHTML = '';
       uploadBtn.disabled = true;
       loadDocuments();
+      setTimeout(() => { uploadPanel.hidden = true; setStatus('', ''); }, 2000);
     } else {
       let msg = 'Upload failed.';
       try { msg = JSON.parse(xhr.responseText).error || msg; } catch (_) { /* ignore */ }
@@ -143,49 +212,85 @@ async function loadDocuments() {
     if (!res.ok) throw new Error('Failed to load documents');
     const data = await res.json();
     allDocs = data.files || [];
+    updateStorageBar();
     renderDocuments(allDocs);
   } catch (err) {
     docsList.innerHTML = `<p class="empty-state">Could not load documents: ${escapeHtml(err.message)}</p>`;
   }
 }
 
+function filterDocs() {
+  const q = searchInput.value.toLowerCase();
+  return q ? allDocs.filter((d) => d.name.toLowerCase().includes(q)) : allDocs;
+}
+
 function renderDocuments(docs) {
   if (docs.length === 0) {
-    docsList.innerHTML = '<p class="empty-state">No documents yet. Upload one above!</p>';
+    docsList.className = 'docs-list';
+    docsList.innerHTML = '<p class="empty-state">No files here. Use the Upload button to add files.</p>';
     return;
   }
-  docsList.innerHTML = docs.map((doc) => `
-    <div class="doc-item" data-stored="${escapeAttr(doc.storedName)}">
-      <span class="doc-icon" aria-hidden="true">${fileIcon(doc.name)}</span>
-      <div class="doc-info">
-        <div class="doc-name" title="${escapeAttr(doc.name)}">${escapeHtml(doc.name)}</div>
-        <div class="doc-meta">${formatSize(doc.size)} · Uploaded ${formatDate(doc.uploadedAt)}</div>
-      </div>
-      <div class="doc-actions">
-        ${isPreviewable(doc.name) ? `<button class="btn btn--secondary btn--small preview-btn" data-stored="${escapeAttr(doc.storedName)}" data-name="${escapeAttr(doc.name)}">👁 View</button>` : ''}
-        <a class="btn btn--secondary btn--small" href="/api/documents/${encodeURIComponent(doc.storedName)}" download="${escapeAttr(doc.name)}">⬇ Download</a>
-        <button class="btn btn--danger btn--small delete-btn" data-stored="${escapeAttr(doc.storedName)}" data-name="${escapeAttr(doc.name)}">🗑 Delete</button>
-      </div>
-    </div>
-  `).join('');
 
-  // Attach preview handlers
+  if (currentView === 'grid') {
+    docsList.className = 'docs-list docs-list--grid';
+    docsList.innerHTML = docs.map((doc) => `
+      <div class="doc-item" data-stored="${escapeAttr(doc.storedName)}">
+        <div class="doc-icon" aria-hidden="true">${fileIcon(doc.name)}</div>
+        <div class="doc-name-cell">
+          <div class="doc-name" title="${escapeAttr(doc.name)}">${escapeHtml(doc.name)}</div>
+        </div>
+        <div class="doc-actions">
+          ${isPreviewable(doc.name) ? `<button class="doc-action-btn preview-btn" data-stored="${escapeAttr(doc.storedName)}" data-name="${escapeAttr(doc.name)}">View</button>` : ''}
+          <a class="doc-action-btn" href="/api/documents/${encodeURIComponent(doc.storedName)}" download="${escapeAttr(doc.name)}">Download</a>
+          <button class="doc-action-btn doc-action-btn--danger delete-btn" data-stored="${escapeAttr(doc.storedName)}" data-name="${escapeAttr(doc.name)}">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    docsList.className = 'docs-list docs-list--list';
+    docsList.innerHTML = `
+      <div class="list-header" role="row" aria-hidden="true">
+        <span>Name</span>
+        <span>Modified</span>
+        <span>File size</span>
+        <span></span>
+      </div>
+    ` + docs.map((doc) => `
+      <div class="doc-item" role="row" data-stored="${escapeAttr(doc.storedName)}">
+        <div class="doc-name-cell">
+          <span class="doc-icon" aria-hidden="true">${fileIcon(doc.name)}</span>
+          <span class="doc-name" title="${escapeAttr(doc.name)}">${escapeHtml(doc.name)}</span>
+        </div>
+        <div class="doc-meta-cell">${formatDate(doc.uploadedAt)}</div>
+        <div class="doc-meta-cell">${formatSize(doc.size)}</div>
+        <div class="doc-actions">
+          ${isPreviewable(doc.name) ? `<button class="doc-action-btn preview-btn" data-stored="${escapeAttr(doc.storedName)}" data-name="${escapeAttr(doc.name)}">👁 View</button>` : ''}
+          <a class="doc-action-btn" href="/api/documents/${encodeURIComponent(doc.storedName)}" download="${escapeAttr(doc.name)}">⬇ Download</a>
+          <button class="doc-action-btn doc-action-btn--danger delete-btn" data-stored="${escapeAttr(doc.storedName)}" data-name="${escapeAttr(doc.name)}">🗑 Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
   docsList.querySelectorAll('.preview-btn').forEach((btn) => {
     btn.addEventListener('click', () => openPreview(btn.dataset.stored, btn.dataset.name));
   });
-
-  // Attach delete handlers
   docsList.querySelectorAll('.delete-btn').forEach((btn) => {
     btn.addEventListener('click', () => deleteDocument(btn.dataset.stored, btn.dataset.name));
   });
 }
 
+/* ── Storage indicator ──────────────────────────────── */
+function updateStorageBar() {
+  const MAX = 5 * 1024 * 1024 * 1024; // 5 GB display cap
+  const used = allDocs.reduce((sum, d) => sum + d.size, 0);
+  const pct = Math.min((used / MAX) * 100, 100);
+  storageFill.style.width = `${pct}%`;
+  storageLabel.textContent = `${formatSize(used)} used`;
+}
+
 /* ── Search ─────────────────────────────────────────── */
-searchInput.addEventListener('input', () => {
-  const query = searchInput.value.toLowerCase();
-  const filtered = allDocs.filter((d) => d.name.toLowerCase().includes(query));
-  renderDocuments(filtered);
-});
+searchInput.addEventListener('input', () => renderDocuments(filterDocs()));
 
 /* ── Refresh ────────────────────────────────────────── */
 refreshBtn.addEventListener('click', loadDocuments);
@@ -201,11 +306,11 @@ function openPreview(storedName, name) {
   } else if (ext === 'pdf') {
     modalBody.innerHTML = `<iframe src="${escapeAttr(url)}" title="${escapeAttr(name)}"></iframe>`;
   } else if (ext === 'txt') {
+    modalBody.innerHTML = '<p class="loading">Loading…</p>';
     fetch(url)
       .then((r) => r.text())
       .then((text) => { modalBody.innerHTML = `<pre>${escapeHtml(text)}</pre>`; })
       .catch(() => { modalBody.innerHTML = '<p class="preview-unavailable">Could not load file.</p>'; });
-    modalBody.innerHTML = '<p class="loading">Loading…</p>';
   } else {
     modalBody.innerHTML = '<p class="preview-unavailable">Preview not available for this file type. Use the Download button.</p>';
   }

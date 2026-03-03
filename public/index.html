@@ -3,79 +3,144 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Document Portal – SharePoint User Manual</title>
+  <title>OneDrive – My Files</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="site-header">
-    <div class="header-inner">
-      <span class="logo">📄</span>
-      <h1>Document Portal</h1>
-      <p class="subtitle">Upload and access training manuals</p>
+
+  <!-- ── Top app bar ────────────────────────────────── -->
+  <header class="app-bar">
+    <button class="app-bar__hamburger" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="app-bar__brand">
+      <svg class="app-bar__od-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path fill="#0078d4" d="M14.1 7.5A5.5 5.5 0 0 0 3.1 9.6 4 4 0 0 0 4 17.5h13.5a3.5 3.5 0 0 0 .5-7 5.5 5.5 0 0 0-3.9-3z"/>
+      </svg>
+      <span class="app-bar__name">OneDrive</span>
+    </div>
+    <div class="app-bar__search">
+      <input
+        type="search"
+        id="searchInput"
+        placeholder="Search everything"
+        aria-label="Search files"
+      />
+    </div>
+    <div class="app-bar__account" aria-label="Account" title="Training Manuals">
+      <span class="app-bar__avatar">TM</span>
     </div>
   </header>
 
-  <main class="container">
-    <!-- Upload Section -->
-    <section class="card upload-section" aria-labelledby="upload-heading">
-      <h2 id="upload-heading">Upload Documents</h2>
+  <div class="shell">
 
-      <div
-        class="drop-zone"
-        id="dropZone"
-        role="button"
-        tabindex="0"
-        aria-label="Drag and drop files here or click to browse"
-      >
-        <div class="drop-zone__icon" aria-hidden="true">⬆️</div>
-        <p class="drop-zone__text">Drag &amp; drop files here</p>
-        <p class="drop-zone__hint">or click to browse your computer</p>
-        <p class="drop-zone__types">
-          Accepted: PDF, Word, Excel, PowerPoint, plain text, PNG, JPEG, GIF · Max 50 MB per file
-        </p>
-        <input
-          type="file"
-          id="fileInput"
-          multiple
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.gif"
-          aria-hidden="true"
-          tabindex="-1"
-        />
+    <!-- ── Left nav ───────────────────────────────────── -->
+    <nav class="nav" id="sideNav" aria-label="OneDrive navigation">
+      <ul class="nav__list">
+        <li class="nav__item nav__item--active" aria-current="page">
+          <span class="nav__icon" aria-hidden="true">🏠</span> My files
+        </li>
+        <li class="nav__item">
+          <span class="nav__icon" aria-hidden="true">🕐</span> Recent
+        </li>
+        <li class="nav__item">
+          <span class="nav__icon" aria-hidden="true">👥</span> Shared
+        </li>
+        <li class="nav__item">
+          <span class="nav__icon" aria-hidden="true">⭐</span> Favorites
+        </li>
+        <li class="nav__divider" role="separator"></li>
+        <li class="nav__item">
+          <span class="nav__icon" aria-hidden="true">🗑️</span> Recycle bin
+        </li>
+      </ul>
+      <div class="nav__storage">
+        <div class="nav__storage-bar">
+          <div class="nav__storage-fill" id="storageFill"></div>
+        </div>
+        <p class="nav__storage-label" id="storageLabel">0 B used</p>
+      </div>
+    </nav>
+
+    <!-- ── Main content ───────────────────────────────── -->
+    <main class="content" id="mainContent">
+
+      <!-- Breadcrumb -->
+      <div class="breadcrumb" aria-label="Breadcrumb">
+        <span class="breadcrumb__item">My files</span>
       </div>
 
-      <div id="selectedFiles" class="selected-files" aria-live="polite"></div>
-
-      <button id="uploadBtn" class="btn btn--primary" disabled>Upload</button>
-
-      <div id="uploadProgress" class="progress-bar" aria-hidden="true">
-        <div class="progress-bar__fill" id="progressFill"></div>
-      </div>
-      <p id="uploadStatus" class="status-msg" aria-live="assertive"></p>
-    </section>
-
-    <!-- Documents Section -->
-    <section class="card documents-section" aria-labelledby="docs-heading">
-      <div class="docs-header">
-        <h2 id="docs-heading">Documents</h2>
-        <button class="btn btn--secondary btn--small" id="refreshBtn" aria-label="Refresh document list">
-          🔄 Refresh
+      <!-- Command bar -->
+      <div class="command-bar" role="toolbar" aria-label="File actions">
+        <button class="cmd-btn cmd-btn--primary" id="uploadTrigger">
+          <span class="cmd-btn__icon" aria-hidden="true">⬆</span> Upload
         </button>
+        <div class="cmd-separator" role="separator"></div>
+        <button class="cmd-btn" id="refreshBtn" aria-label="Refresh">
+          <span class="cmd-btn__icon" aria-hidden="true">🔄</span> Refresh
+        </button>
+        <div class="cmd-spacer"></div>
+        <div class="view-toggle" role="group" aria-label="View">
+          <button class="view-btn" id="listViewBtn" aria-pressed="true" title="List view">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="2" width="14" height="2"/><rect x="1" y="7" width="14" height="2"/><rect x="1" y="12" width="14" height="2"/></svg>
+          </button>
+          <button class="view-btn" id="gridViewBtn" aria-pressed="false" title="Grid view">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="6" height="6"/><rect x="9" y="1" width="6" height="6"/><rect x="1" y="9" width="6" height="6"/><rect x="9" y="9" width="6" height="6"/></svg>
+          </button>
+        </div>
       </div>
 
-      <div class="search-bar">
-        <input
-          type="search"
-          id="searchInput"
-          placeholder="Search documents…"
-          aria-label="Search documents"
-        />
+      <!-- Upload panel (hidden by default, shown on Upload click or drag) -->
+      <div class="upload-panel" id="uploadPanel" hidden>
+        <div
+          class="drop-zone"
+          id="dropZone"
+          role="button"
+          tabindex="0"
+          aria-label="Drag and drop files here or click to select"
+        >
+          <div class="drop-zone__icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
+              <path fill="#0078d4" d="M24 6l-9 12h6v14h6V18h6z"/>
+              <rect fill="#0078d4" x="8" y="36" width="32" height="4" rx="2"/>
+            </svg>
+          </div>
+          <p class="drop-zone__text">Drag files here or click to browse</p>
+          <p class="drop-zone__types">PDF, Word, Excel, PowerPoint, Text, Images · Max 50 MB</p>
+          <input
+            type="file"
+            id="fileInput"
+            multiple
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.gif"
+            aria-hidden="true"
+            tabindex="-1"
+          />
+        </div>
+        <div id="selectedFiles" class="selected-files" aria-live="polite"></div>
+        <div class="upload-actions">
+          <button id="uploadBtn" class="cmd-btn cmd-btn--primary" disabled>Upload files</button>
+          <button id="cancelUploadBtn" class="cmd-btn">Cancel</button>
+        </div>
+        <div id="uploadProgress" class="progress-bar" aria-hidden="true">
+          <div class="progress-bar__fill" id="progressFill"></div>
+        </div>
+        <p id="uploadStatus" class="status-msg" aria-live="assertive"></p>
       </div>
 
-      <div id="docsList" class="docs-list" aria-live="polite">
+      <!-- File list / grid -->
+      <div id="docsList" class="docs-list docs-list--list" aria-live="polite">
         <p class="loading">Loading…</p>
       </div>
-    </section>
-  </main>
+    </main>
+  </div>
+
+  <!-- Drop overlay (full-page drag-and-drop) -->
+  <div class="drop-overlay" id="dropOverlay" hidden aria-hidden="true">
+    <div class="drop-overlay__inner">
+      <div class="drop-overlay__icon">☁️</div>
+      <p>Drop files to upload to OneDrive</p>
+    </div>
+  </div>
 
   <!-- Preview Modal -->
   <div
