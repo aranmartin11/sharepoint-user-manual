@@ -1,0 +1,27 @@
+{
+  "name": "sharepoint-user-manual",
+  "version": "1.0.0",
+  "description": "Upload area for training manuals",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/server.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aranmartin11/sharepoint-user-manual.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aranmartin11/sharepoint-user-manual/issues"
+  },
+  "homepage": "https://github.com/aranmartin11/sharepoint-user-manual#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "multer": "^2.1.0"
+  }
+}
