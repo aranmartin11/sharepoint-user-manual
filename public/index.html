@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document Portal – SharePoint User Manual</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <span class="logo">📄</span>
+      <h1>Document Portal</h1>
+      <p class="subtitle">Upload and access training manuals</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Upload Section -->
+    <section class="card upload-section" aria-labelledby="upload-heading">
+      <h2 id="upload-heading">Upload Documents</h2>
+
+      <div
+        class="drop-zone"
+        id="dropZone"
+        role="button"
+        tabindex="0"
+        aria-label="Drag and drop files here or click to browse"
+      >
+        <div class="drop-zone__icon" aria-hidden="true">⬆️</div>
+        <p class="drop-zone__text">Drag &amp; drop files here</p>
+        <p class="drop-zone__hint">or click to browse your computer</p>
+        <p class="drop-zone__types">
+          Accepted: PDF, Word, Excel, PowerPoint, plain text, PNG, JPEG, GIF · Max 50 MB per file
+        </p>
+        <input
+          type="file"
+          id="fileInput"
+          multiple
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.gif"
+          aria-hidden="true"
+          tabindex="-1"
+        />
+      </div>
+
+      <div id="selectedFiles" class="selected-files" aria-live="polite"></div>
+
+      <button id="uploadBtn" class="btn btn--primary" disabled>Upload</button>
+
+      <div id="uploadProgress" class="progress-bar" aria-hidden="true">
+        <div class="progress-bar__fill" id="progressFill"></div>
+      </div>
+      <p id="uploadStatus" class="status-msg" aria-live="assertive"></p>
+    </section>
+
+    <!-- Documents Section -->
+    <section class="card documents-section" aria-labelledby="docs-heading">
+      <div class="docs-header">
+        <h2 id="docs-heading">Documents</h2>
+        <button class="btn btn--secondary btn--small" id="refreshBtn" aria-label="Refresh document list">
+          🔄 Refresh
+        </button>
+      </div>
+
+      <div class="search-bar">
+        <input
+          type="search"
+          id="searchInput"
+          placeholder="Search documents…"
+          aria-label="Search documents"
+        />
+      </div>
+
+      <div id="docsList" class="docs-list" aria-live="polite">
+        <p class="loading">Loading…</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Preview Modal -->
+  <div
+    id="previewModal"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalTitle"
+    hidden
+  >
+    <div class="modal__backdrop" id="modalBackdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h3 id="modalTitle" class="modal__title">Preview</h3>
+        <button class="modal__close" id="modalClose" aria-label="Close preview">✕</button>
+      </div>
+      <div class="modal__body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
